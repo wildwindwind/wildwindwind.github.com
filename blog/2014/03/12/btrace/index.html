@@ -1,0 +1,893 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>BTrace简介及使用 - ~~wild~~wind~~</title>
+  <meta name="author" content="wildWind">
+
+  
+  <meta name="description" content="BTrace简介及使用 Mar 12th, 2014 背景 在生产环境中可能经常遇到各种问题，定位问题需要获取程序运行时的数据信息，如方法参数、返回值、全局变量、堆栈信息等。为了获取这些数据信息，我们可以通过改写代码，增加日志信息的打印，再发布到生产环境。通过这种方式， &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://wildwindwind.github.io/blog/2014/03/12/btrace">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="~~wild~~wind~~" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-7583537-4']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">~~wild~~wind~~</a></h1>
+  
+    <h2>学而随记之,不亦益乎...</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:wildwindwind.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Blog list</a></li>
+  <li><a href="/aboutme">About me</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<!-- JiaThis Button BEGIN -->
+<div class="jiathis_style">
+	<a class="jiathis_like_tsina" data="width=120"></a>
+	<a class="jiathis_like_qzone"></a>
+</div>
+<script type="text/javascript" src="http://v3.jiathis.com/code_mini/jia.js?uid=1394191592136352" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">BTrace简介及使用</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-03-12T20:43:36+08:00" pubdate data-updated="true">Mar 12<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>背景</p>
+
+<p>在生产环境中可能经常遇到各种问题，定位问题需要获取程序运行时的数据信息，如方法参数、返回值、全局变量、堆栈信息等。为了获取这些数据信息，我们可以通过改写代码，增加日志信息的打印，再发布到生产环境。通过这种方式，一方面将增大定位问题的成本和周期，对于紧急问题无法做到及时响应；另一方面重新部署后环境可能已被破坏，很难重新问题的场景。</p>
+
+<p>对于程序员来说最头大的问题之一就是线上出了故障了，但是我们无法debug来找出问题原因，同时在上线的时候日志级别限定了我们不可能把所有的细节都打印到log上，这个时候故障都等在哪里，能办的手段无非看源码，通过仔细看代码来找出问题，并编译重新上线解决，这种手段能解决一部分代码，但是对于一些隐藏较深的bug就无能为力了，例如OOM或是频繁的full gc，一般是一个很多的对象没有被释放或是一个对象被频繁的创建调用。在一个复杂的项目中，一个OOM问题可能是一个对象被频繁创建，这种方式指望通过看源码是很难解决的，但是BTrace可以迅速帮助我们定位到问题所在地。</p>
+
+<!--more-->
+
+
+<p>介绍</p>
+
+<p>Btrace (Byte Trace)是sun推出的一款java 动态、安全追踪（监控）工具，可以不停机的情况下监控线上情况，并且做到最少的侵入，占用最少的系统资源。 BTrace应用较为广泛的原因应该是其安全性和无侵入性，其中热交互技术，使得我们无需启动Agent的情况下动态跟踪分析，其安全性不会导致对目标Java进程的任何破坏性影响，使得BTrace成为我们线上产品问题定位的利器。无侵入性无需我们对原有代码做任何修改，降低上线风险和测试成本，并且无需重启启动目标Java进程进行Agent加载即可动态分析和跟踪目标程序，可以说BTrace可以满足大部分的应用场景。</p>
+
+<p>安装</p>
+
+<p>下载BTrace（<a href="https://kenai.com/projects/btrace/downloads/directory/releases%EF%BC%89%EF%BC%8C%E8%A7%A3%E5%8E%8B%E8%87%B3%E4%BB%BB%E6%84%8F%E7%9B%AE%E5%BD%95%E3%80%82">https://kenai.com/projects/btrace/downloads/directory/releases%EF%BC%89%EF%BC%8C%E8%A7%A3%E5%8E%8B%E8%87%B3%E4%BB%BB%E6%84%8F%E7%9B%AE%E5%BD%95%E3%80%82</a>
+设置BTRACE_HOME，将bin目录加至环境变量PATH中。
+ 使用</p>
+
+<p>jps命令查出需要监控的jvm pid
+编写BTrace跟踪程序 （安装包中带有大量的Demo，附录会对各个Demo的功能进行一一说明）
+执行：btrace <pid> BTrace跟踪程序
+BTrace主要包含btracec和btracer两个命令编译和启动BTrace脚本:
+1. btrace
+功能: 用于运行BTrace跟踪程序。
+命令格式:
+btrace [-I &lt;include-path>] [-p <port>] [-cp <classpath>] <pid> &lt;btrace-script> [<args>]</p>
+
+<p>-I:没有这个表明跳过预编译
+include-path:指定用来编译脚本的头文件路径(关于预编译可参考例子ThreadBean.java)
+port:btrace agent端口,默认是2020
+classpath:编译所需类路径,一般是指btrace-client.jar等类所在路径
+pid:java进程id
+btrace-script:btrace脚本可以是.java文件,也可以是.class文件
+args:传递给btrace脚本的参数, 在脚本中可以通过$(), $length()来获取这些参数(定义在BTraceUtils中)
+示例:
+btrace -cp build/  1200 AllCalls1.java
+参数含义:
+include-path指定头文件的路径，用于脚本预处理功能，可选；
+port指定BTrace agent的服务端监听端口号，用来监听clients，默认为2020，可选；
+classpath用来指定类加载路径，默认为当前路径，可选；
+pid表示进程号，可通过jps命令获取；
+btrace-script即为BTrace脚本；btrace脚本如果以.java结尾，会先编译再提交执行。可使用btracec命令对脚本进行预编译。
+args是BTrace脚本可选参数，在脚本中可通过&#8221;$&ldquo;和&rdquo;$length&#8221;获取参数信息。</p>
+
+<ol>
+<li><p>btracec
+功能: 用于预编译BTrace脚本，用于在编译时期验证脚本正确性。
+btracec [-I &lt;include-path>] [-cp <classpath>] [-d <directory>] &lt;one-or-more-BTrace-.java-files>
+参数意义同btrace命令一致，directory表示编译结果输出目录。</p></li>
+<li><p>btracer
+功能: btracer命令同时启动应用程序和BTrace脚本，即在应用程序启动过程中使用BTrace脚本。而btrace命令针对已运行程序执行BTrace脚本。
+命令格式:
+btracer &lt;pre-compiled-btrace.class> &lt;application-main-class> &lt;application-args>
+参数说明:
+pre-compiled-btrace.class表示经过btracec编译后的BTrace脚本。
+application-main-class表示应用程序代码；
+application-args表示应用程序参数。
+该命令的等价写法为:
+java -javaagent:btrace-agent.jar=script=&lt;pre-compiled-btrace-script1>[,&lt;pre-compiled-btrace-script1>]* <MainClass> <AppArguments></p></li>
+</ol>
+
+
+<p>局限性</p>
+
+<p>虽然BTrace很强大,但Btrace脚本就是一个普通的用@Btrace注解的Java类,其中包含一个或多个public static void修饰的方法,为了保证对目标程序不造成影响,Btrace脚本对其可以执行的动作做了很多限制，如下：</p>
+
+<p>不能创建对象
+不能抛出或者捕获异常
+不能用synchronized关键字
+不能对目标程序中的instace或者static变量
+不能调用目标程序的instance或者static方法
+脚本的field、method都必须是static的
+脚本不能包括outer,inner,nested class
+脚本中不能有循环,不能继承任何类,任何接口与assert语句
+重要概念</p>
+
+<p>方法上的注解</p>
+
+<p>@ OnMethod  用来指定trace的目标类和方法以及具体位置, 被注解的方法在匹配的方法执行到指定的位置会被调用。
+1、&#8221;clazz&#8221;属性用来指定目标类名, 可以指定全限定类名, 比如&#8221;java.awt.Component&#8221;, 也可以是正则表达式(表达式必须写在&#8221;//&ldquo;中, 比如&rdquo;/java&#46;awt&#46;.+/&ldquo;)。
+2、&#8221;method&#8221;属性用来指定被trace的方法. 表达式可以参考自带的例子(NewComponent.java 和Classload.java, 关于方法的注解可以参考MultiClass.java)。
+3、有时候被trace的类和方法可能也使用了注解. 用法参考自带例子WebServiceTracker.java。
+4、针对注解也是可以使用正则表达式, 比如像这个&rdquo;@/com&#46;acme&#46;.+/ &ldquo;，也可以通过指定超类来匹配多个类, 比如&rdquo;+java.lang.Runnable&#8221;可以匹配所有实现了java.lang.Runnable接口的类. 具体参考自带例子SubtypeTracer.java。
+@OnTimer定时触发Trace，时间可以指定，单位为毫秒，具体参考自带例子 Histogram.java。
+@OnError 当trace代码抛异常或者错误时，该注解的方法会被执行. 如果同一个trace脚本中其他方法抛异常, 该注解方法也会被执行。
+@OnExit 当trace方法调用内置exit(int)方法(用来结束整个trace程序)时, 该注解的方法会被执行. 参考自带例子ProbeExit.java。
+@OnEvent 用来截获&#8221;外部&#8221;btrace client触发的事件, 比如按Ctrl-C 中断btrace执行时，并且选择2，或者输入事件名称，将执行使用了该注解的方法, 该注解的value值为具体事件名称。具体参考例子HistoOnEvent.java
+@OnLowMemory 当内存超过某个设定值将触发该注解的方法, 具体参考MemAlerter.java
+@OnProbe 使用外部文件XML来定义trace方法以及具体的位置，具体参考示例SocketTracker1.java和java.net.socket.xml。
+参数上的注解</p>
+
+<p>@Self 用来指定被trace方法的this，可参考例子AWTEventTracer.java 和 AllCalls1.java
+@Return 用来指定被trace方法的返回值，可参考例子Classload.java
+@ProbeClassName (since 1.1) 用来指定被trace的类名, 可参考例子AllMethods.java
+@ProbeMethodName (since 1.1) 用来指定被trace的方法名, 可参考例子WebServiceTracker.java。
+@TargetInstance (since 1.1) 用来指定被trace方法内部被调用到的实例, 可参考例子AllCalls2.java
+@TargetMethodOrField (since 1.1) 用来指定被trace方法内部被调用的方法名, 可参考例子AllCalls1.java 和AllCalls2.java。
+非注解的方法参数</p>
+
+<p>未使用注解的方法参数一般都是用来做方法签名匹配用的, 他们一般和被trace方法中参数出现的顺序一致. 不过他们也可以与注解方法交错使用, 如果一个参数类型声明为<em>AnyType[]</em>, 则表明它按顺序&#8221;通吃&#8221;方法所有参数. 未注解方法需要与<em>Location</em>结合使用:</p>
+
+<p>Kind.ENTRY-被trace方法参数
+Kind.RETURN- 被trace方法返回值
+Kind.THROW &ndash; 抛异常
+Kind.ARRAY_SET, Kind.ARRAY_GET &ndash; 数组索引
+Kind.CATCH &ndash; 捕获异常
+Kind.FIELD_SET &ndash; 属性值
+Kind.LINE &ndash; 行号
+Kind.NEW &ndash; 类名
+Kind.ERROR &ndash; 抛异常
+属性上的注解</p>
+
+<p>@Export 该注解的静态属性主要用来与jvmstat计数器做关联， 使用该注解之后，btrace程序就可以向jvmstat客户端(可以用来统计jvm堆中的内存使用量)暴露trace程序的执行次数， 具体可参考例子ThreadCounter.java。
+@Property 使用了该注解的trace脚本将作为MBean的一个属性，一旦使用该注解， trace脚本就会创建一个MBean并向MBean服务器注册， 这样JMX客户端比如VisualVM， jconsole就可以看到这些BTrace MBean， 如果这些被注解的属性与被trace程序的属性关联， 那么就可以通过VisualVM 和jconsole来查看这些属性了， 具体可参考例子ThreadCounterBean.java 和HistogramBean.java。
+@TLS 用来将一个脚本变量与一个ThreadLocal变量关联， 因为ThreadLocal变量是跟线程相关的， 一般用来检查在同一个线程调用中是否执行到了被trace的方法， 具体可参考例子OnThrow.java 和 WebServiceTracker.java。
+类上的注解</p>
+
+<p>@com.sun.btrace.annotations.DTrace 用来指定btrace脚本与内置在其脚本中的D语言脚本关联， 具体参考例子DTraceInline.java。
+@com.sun.btrace.annotations.DTraceRef 用来指定btrace脚本与另一个D语言脚本文件关联， 具体参考例子DTraceRefDemo.java。
+@com.sun.btrace.annotations.BTrace 用来指定该java类为一个btrace脚本文件。
+Samples</p>
+
+<p>1.跟踪WildFly内存信息，用@OnTimer 这个annotation每隔4秒钟打印一次内存堆栈信息：</p>
+
+<p>import com.sun.btrace.annotations.BTrace;</p>
+
+<p>import com.sun.btrace.annotations.OnTimer;</p>
+
+<p>import static com.sun.btrace.BTraceUtils.*;</p>
+
+<p>@BTrace</p>
+
+<p>public class TraceMemory {</p>
+
+<pre><code>    //heapUsage()/nonHeapUsage() – 打印堆/非堆内存信息，包括init、used、commit、max
+
+    @OnTimer(4000)
+
+    public static void printM(){
+
+            //打印内存信息
+
+            println("heap:");
+
+            println(heapUsage());
+
+            println("no-heap:");
+
+            println(nonHeapUsage());
+
+    }
+</code></pre>
+
+<p>}</p>
+
+<p>查找 WildFly pid：</p>
+
+<p>[root@mdwareweb1 test]# jps</p>
+
+<p>7119 Jps</p>
+
+<p>5513 jboss-modules.jar</p>
+
+<p>执行：</p>
+
+<p> btrace 5513 TraceMemory.java</p>
+
+<p>结果：</p>
+
+<p>[root@mdwareweb1 test]# btrace 5513 TraceMemory.java
+heap:
+init = 67108864(65536K) used = 70036960(68395K) committed = 209387520(204480K) max = 477233152(466048K)
+no-heap:
+init = 19136512(18688K) used = 43569672(42548K) committed = 78348288(76512K) max = 318767104(311296K)
+heap:
+init = 67108864(65536K) used = 70893560(69231K) committed = 209387520(204480K) max = 477233152(466048K)
+no-heap:
+init = 19136512(18688K) used = 43569672(42548K) committed = 78348288(76512K) max = 318767104(311296K)
+heap:
+init = 67108864(65536K) used = 70893560(69231K) committed = 209387520(204480K) max = 477233152(466048K)
+no-heap:
+init = 19136512(18688K) used = 43573768(42552K) committed = 78348288(76512K) max = 318767104(311296K)</p>
+
+<p>2、打印WildFly运行时系统信息：</p>
+
+<p>import static com.sun.btrace.BTraceUtils.*;</p>
+
+<p>import com.sun.btrace.annotations.BTrace;</p>
+
+<p>@BTrace</p>
+
+<p>public class TraceJInfo {</p>
+
+<pre><code>     static{
+
+            println("java vm properties:===&gt;");
+
+            printVmArguments();
+
+            println("System properties:===&gt;");
+
+            printProperties();
+
+            println("OS properties:===&gt;");
+
+            printEnv();
+
+            exit();
+
+    }
+</code></pre>
+
+<p>}</p>
+
+<p>执行结果：</p>
+
+<p>[root@mdwareweb1 test]# btrace 5513 TraceJInfo.java
+java vm properties:===>
+[-D[Standalone], -Xms64m, -Xmx512m, -XX:MaxPermSize=256m, -Djava.net.preferIPv4Stack=true, -Djboss.modules.system.pkgs=org.jboss.byteman, -Djava.awt.headless=true, -Dorg.jboss.boot.log.file=/opt/jboss/wildfly-8.0.0.Final/standalone/log/server.log, -Dlogging.configuration=file:/opt/jboss/wildfly-8.0.0.Final/standalone/configuration/logging.properties]
+System properties:===>
+org.jboss.security.context.ThreadLocal = true
+java.vm.version = 23.25-b01
+sun.jnu.encoding = UTF-8
+java.vendor.url = <a href="http://java.oracle.com/">http://java.oracle.com/</a>
+java.vm.info = mixed mode
+org.apache.xml.security.ignoreLineBreaks = true
+jboss.server.name = mdwareweb1
+java.awt.headless = true
+user.dir = /opt/jboss/wildfly-8.0.0.Final/bin
+sun.cpu.isalist =
+logging.configuration = file:/opt/jboss/wildfly-8.0.0.Final/standalone/configuration/logging.properties</p>
+
+<p>&hellip;&hellip;</p>
+
+<p>3、排查ClassNotFoundException</p>
+
+<p>写过Java代码的读者估计都碰到过ClassNotFoundException/NoClassDefFoundError/NoSuchMethodException(还有一个常见的ClassCastException就不在这里说了)。当碰到ClassNotFoundException/NoClassDefFound时，如果很确定这个class应该是从哪个路径装载的，则可以去相应的路径找下是否有对应的class文件存在，例如web应用通常会在*.war(ear)/WEB-INF/lib或classes目录下，对于lib下的jar包，可通过写个小脚本jar -tvf的方式找找；如不确定class是从哪装载的，则可以先看看日志里是否有堆栈信息，如果有的话则可以看到具体是哪个ClassLoader实现在装载class，之后则可以通过www.grepcode.com或jar包反编译看看具体是从哪装载的class；如果日志中没有，则可以用btrace来跟踪下抛出以上两个异常的堆栈信息，btrace脚本类似如下：</p>
+
+<p>import static com.sun.btrace.BTraceUtils.<em>;
+import com.sun.btrace.annotations.</em>;
+@BTrace public class Trace{
+   @OnMethod(</p>
+
+<pre><code>   clazz="java.lang.ClassNotFoundException",
+   method="&lt;init&gt;"
+</code></pre>
+
+<p>   )
+   public static void traceExecute(){</p>
+
+<pre><code>    jstack(); 
+</code></pre>
+
+<p>   }
+}
+拿到堆栈信息后，可以继续使用上面的方法进行排查，在确认了class装载的位置后，则可将相应的class/jar加上即可。</p>
+
+<p>4、排查OutOfMemoryError</p>
+
+<p>尽管JVM是自动管理内存的分配和回收的，但Java程序员们还是会经常碰到各种各样的内存问题。最常见的第一个问题是java.lang.OutOfMemoryError，估计写Java的读者都碰到过。在日志中可能会看到java.lang.OutOfMemoryError: Unable to create new native thread，可以先统计下目前的线程数(例如ps -eLf | grep java -c)，然后可以看看ulimit -u的限制值是多少，如线程数已经达到限制值，如限制值可调整，则可通过调整限制值来解决；如不能调限制值，或者创建的线程已经很多了，那就需要看看线程都是哪里创建出来的，同样可通过btrace来查出是哪里创建的，脚本类似如下：</p>
+
+<p>import static com.sun.btrace.BTraceUtils.<em>;
+import com.sun.btrace.annotations.</em>;
+@BTrace public class Trace{
+   @OnMethod(</p>
+
+<pre><code>   clazz="java.lang.Thread",
+   method="start"
+</code></pre>
+
+<p>   )
+   public static void traceExecute(){</p>
+
+<pre><code>    jstack(); 
+</code></pre>
+
+<p>   }
+}
+在找到是哪里创建造成了后，之后就可以想办法解决了，例如这种情况下常见的有可能是用了Executors.newCachedThreadPool这种来创建了一个没限制大小的线程池。
+综合实例</p>
+
+<p>以下是笔者编写的一个demo，主要用于测试OOM，当然也会对BTrace的功能进行介绍。</p>
+
+<p>首先，笔者编写了两个用于测试的类，如下：</p>
+
+<p>StartObject.java</p>
+
+<p>import java.util.Random;</p>
+
+<p>public class StartObject {</p>
+
+<pre><code>private static int totalTime = 0;
+
+public int work(int sleepTime) throws InterruptedException{
+
+    System.out.println("sleep " + sleepTime);
+
+    totalTime += sleepTime;
+
+    return totalTime;
+
+}
+</code></pre>
+
+<p>}</p>
+
+<p>HeapOOM.java</p>
+
+<p>import java.util.ArrayList;</p>
+
+<p>import java.util.List;</p>
+
+<p>import java.util.Random;</p>
+
+<p>public class HeapOOM {</p>
+
+<pre><code>  public static void main(String agrs[]) throws InterruptedException{
+
+      Random random = new Random();
+
+          List&lt;Integer&gt; list = new ArrayList&lt;Integer&gt;();
+
+      Thread.sleep(10000);
+
+      while(true){  
+
+      int sleepTime = random.nextInt(1000);
+</code></pre>
+
+<p>list.add(new StartObject().work(sleepTime));</p>
+
+<pre><code>  }  
+
+  }  
+</code></pre>
+
+<p>}</p>
+
+<p>由于笔者将运行时jvm参数设置为：-Xms10m -Xmx10m</p>
+
+<p>因此程序会因为HeapOOM.java中红色一行代码不断创建对象而发生OutOfMemoryError异常。</p>
+
+<p>以下，我们便通过StartObject这个类来查找是在哪不断新建对象并调用其work方法，于是编写BTrace脚本如下：</p>
+
+<p>import static com.sun.btrace.BTraceUtils.*;</p>
+
+<p>import com.sun.btrace.annotations.*;</p>
+
+<p>@BTrace</p>
+
+<p>public class TraceObject {</p>
+
+<pre><code> @OnMethod(clazz = "StartObject", method = "work", location = @Location(value = Kind.CALL, clazz = "/.*/", method = "/.*/"))  
+
+    public static void checkWhoCallMe() {  
+
+        println("check who ActionObject.work method:");  
+
+        jstack();  
+
+    }  
+</code></pre>
+
+<p>}</p>
+
+<p>通过jps查找到HeapOOM执行的pid</p>
+
+<p>执行：btrace [pid] TraceObject.java
+在终端我们看到HeapOOM类中执行StratObject.work方法，如此即可找到我们想要的执行对象，从而可以去修改。</p>
+
+<p>若是得到work方法的执行时间的话，脚本如下：</p>
+
+<p>import static com.sun.btrace.BTraceUtils.*;</p>
+
+<p>import com.sun.btrace.annotations.*;</p>
+
+<p>@BTrace</p>
+
+<p>public class TraceObjectCost {</p>
+
+<pre><code>@TLS
+
+static long startTime;
+
+@OnMethod(clazz = "StartObject", method = "work", location = @Location(Kind.RETURN))
+
+public static void start() {
+
+     startTime = timeMillis();
+
+}
+</code></pre>
+
+<p> @OnMethod(clazz = &ldquo;StartObject&rdquo;, method = &ldquo;work&rdquo;, location = @Location(Kind.RETURN))</p>
+
+<pre><code>public static void getMethodExecuteCost(int sleepTime,@Return int totalTime) {
+
+    String str = str(timeMillis() - startTime);
+
+    String strcat = strcat("execute work method cost:", str);
+
+    String strcat2 = strcat(strcat, " ms");
+
+    println(strcat2);
+
+}
+</code></pre>
+
+<p>}</p>
+
+<p>若是期望的到一个method哪几行被执行了的话，脚本如下：</p>
+
+<p>import static com.sun.btrace.BTraceUtils.*;</p>
+
+<p>import com.sun.btrace.annotations.*;</p>
+
+<p>@BTrace</p>
+
+<p>public class TraceObjectLineCall {</p>
+
+<pre><code>@OnMethod(clazz="StartObject",method="work",location=@Location(value=Kind.CALL, clazz="/.*/", method="/.*/"))
+
+public static void lineCall(@Self StartObject self, @TargetMethodOrField String method, @ProbeMethodName String probeMethod){
+
+    println(Strings.strcat(method, Strings.strcat(" in ", probeMethod)));
+
+}
+</code></pre>
+
+<p>}</p>
+
+<p>个人见解</p>
+
+<p>虽然 Btrace 在关键时候能起到迅速排查问题的作用，但我个人感觉，这还是不到万不得已才使用的好。首先，我们代码上线前，应该充分 review ，充分和相关方进行沟通，以避免不必要的问题发生。其次，我们应该养成记 log 的良好习惯。遇到问题，如果有相关日志可以排查，是最方便的，同时也是最安全，成本最低的一种排查方法。最后，我们可以结合 btrace 和 jdk 自带的 tool 来排查问题，比如 jstack 、 jstat 等等，快速的定位问题。</p>
+
+<p>参考资料</p>
+
+<p><a href="http://kenai.com/projects/btrace/pages/UserGuide">http://kenai.com/projects/btrace/pages/UserGuide</a></p>
+
+<p><a href="http://learnworld.iteye.com/blog/1402763">http://learnworld.iteye.com/blog/1402763</a></p>
+
+<p><a href="http://inter12.iteye.com/blog/1759882">http://inter12.iteye.com/blog/1759882</a></p>
+
+<p><a href="http://www.cnblogs.com/serendipity/archive/2012/05/14/2499840.html">http://www.cnblogs.com/serendipity/archive/2012/05/14/2499840.html</a></p>
+
+<p>附录</p>
+
+<p>相关实例说明</p>
+
+<p>AWTEventTracer.java &ndash; 演示了对EventQueue.dispatchEvent()事件进行trace的做法, 可以通过instanceof来对事件进行过滤, 比如这里只针对focus事件trace.</p>
+
+<p>AllLines.java &ndash; 演示了如何在被trace的程序到达probe指定的类和指定的行号时执行指定的操作(例子中指定的行号是-1表示任意行).</p>
+
+<p>AllSync.java &ndash; 演示了如何在进入/退出同步块进行trace.</p>
+
+<p>ArgArray.java &ndash; 演示了打印java.io包下所有类的readXXX方法的输入参数.</p>
+
+<p>Classload.java &ndash; 演示打印成功加载指定类以及堆栈信息.</p>
+
+<p>CommandArg.java &ndash; 演示如何获取btrace命令行参数.</p>
+
+<p>Deadlock.java &ndash; 演示了@OnTimer注解和内置deadlock()方法的用法</p>
+
+<p>DTraceInline.java &ndash; 演示@DTrace注解的用法</p>
+
+<p>DTraceDemoRef.java &ndash; 演示@DTraceRef 注解的用法.</p>
+
+<p>FileTracker.java &ndash; 演示了如何对File{Input/Output}Stream构造函数中初始化打开文件的读写文件操作进行trace.</p>
+
+<p>FinalizeTracker.java &ndash; 演示了如何打印一个类所有的属性, 这个在调试和故障分析中非常有用. 这里的例子是打印FileInputStream类的close() /finalize() 方法被调用时的信息.</p>
+
+<p>Histogram.java &ndash; 演示了统计javax.swing.JComponent在一个应用中被创建了多少次.</p>
+
+<p>HistogramBean.java &ndash; 同上例, 只不过演示了如何与JMX集成, 这里的map属性通过使用@Property注解被暴露成一个MBean.</p>
+
+<p>HistoOnEvent.java &ndash; 同上例, 只不过演示了如何在通过按ctrl+c中断当前脚本时打印出创建次数, 而不是定时打印.</p>
+
+<p>JdbcQueries.java &ndash; 演示了聚合(aggregation)功能. 关于聚合功能可参考DTrace.</p>
+
+<p>JInfo.java &ndash; 演示了内置方法printVmArguments(), printProperties() 和printEnv() 的用法</p>
+
+<p>JMap.java &ndash; 演示了内置方法dumpHeap()的用法. 即将目标应用的堆信息以二进制的形式dump出来</p>
+
+<p>JStack.java &ndash; 演示了内置方法jstackAll()的用法, 即打印所有线程的堆栈信息.</p>
+
+<p>LogTracer.java &ndash; 演示了如何深入实例方法(Logger.log)并调用内置方法(field() )打印私有属性内容.</p>
+
+<p>MemAlerter.java &ndash; 演示了使用@OnLowMememory 注解监控内存使用情况. 即堆内存中的年老代达到指定值时打印出内存信息.</p>
+
+<p>Memory.java &ndash; 演示每隔4s打印一次内存统计信息.</p>
+
+<p>MultiClass.java &ndash; 演示了通过使用正则表达式对多个类的多个方法进行trace.</p>
+
+<p>NewComponent.java &ndash; 使用计数器每隔一段时间检查当前应用中创建java.awt.Component的个数.</p>
+
+<p>OnThrow.java &ndash; 当抛出异常时, 打印出异常堆栈信息.</p>
+
+<p>ProbeExit.java &ndash; 演示@OnExit注解和内置exit(int)方法的用法</p>
+
+<p>Profiling.java &ndash; 演示了对profile的支持.  // 我执行没成功, BTrace内部有异常</p>
+
+<p>Sizeof.java &ndash; 演示了内置的sizeof方法的使用.</p>
+
+<p>SocketTracker.java &ndash; 演示了对socket的creation/bind方法的trace.</p>
+
+<p>SocketTracker1.java &ndash; 同上, 只不过使用了@OnProbe.</p>
+
+<p>SysProp.java &ndash; 演示了使用内置方法获取系统属性, 这里是对 java.lang.System的getProperty方法进行trace.</p>
+
+<p>SubtypeTracer.java &ndash; 演示了如何对指定超类的所有子类的指定方法进行trace.</p>
+
+<p>ThreadCounter.java &ndash; 演示了在脚本中如何使用jvmstat 计数器. (jstat -J-Djstat.showUnsupported=true -name btrace.com.sun.btrace.samples.ThreadCounter.count 需要这样来从外部通过jstat来访问)</p>
+
+<p>ThreadCounterBean.java &ndash; 同上, 只不过使用了JMX.</p>
+
+<p>ThreadBean.java &ndash; 演示了对预编译器的使用(并结合了JMX).</p>
+
+<p>ThreadStart.java &ndash; 演示了脚本中DTrace的用法.</p>
+
+<p>Timers.java &ndash; 演示了在一个脚本中同时使用多个@OnTimer</p>
+
+<p>URLTracker.java &ndash; 演示了在每次URL.openConnection成功返回时打印出url. 这里也使用了D语言脚本.</p>
+
+<p>WebServiceTracker.java &ndash; 演示了如何根据注解进行trace.</p>
+</div>
+
+
+  
+      <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style_24x24">
+	<a class="jiathis_button_qzone"></a>
+	<a class="jiathis_button_tsina"></a>
+	<a class="jiathis_button_tqq"></a>
+	<a class="jiathis_button_weixin"></a>
+	<a class="jiathis_button_renren"></a>
+	<a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	<a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" src="http://v3.jiathis.com/code_mini/jia.js?uid=1394191592136352" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+   
+   </br>
+  </br>
+  
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><!-- Duoshuo Comment BEGIN -->
+	<div class="ds-thread"></div>
+<script type="text/javascript">
+var duoshuoQuery = {short_name:"wildwindwind"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = 'http://static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		|| document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+<!-- Duoshuo Comment END -->
+</div>
+  </section>
+
+   <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">wildWind</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-03-12T20:43:36+08:00" pubdate data-updated="true">Mar 12<span>th</span>, 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/tools/'>tools</a>
+  
+</span>
+
+
+    </p>
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/03/11/reader/" title="Previous Post: 【码农周刊年终特刊】2013年我们读过的好书">&laquo; 【码农周刊年终特刊】2013年我们读过的好书</a>
+      
+      
+    </p>
+  </footer>
+  
+
+<DIV style="font-size:12px;BORDER-BOTTOM: #bbbbbb 1px solid; BORDER-LEFT: #bbbbbb 1px solid; BACKGROUND: #ffffff; HEIGHT: 110px; BORDER-TOP: #bbbbbb 1px solid; BORDER-RIGHT: #bbbbbb 1px solid" class=oec2003right> 
+<DIV style="MARGIN-TOP: 10px; FLOAT: left; MARGIN-LEFT: 5px; MARGIN-RIGHT: 10px"> 
+<IMG alt="" src="http://avatar.csdn.net/3/1/F/1_huanghaifeng1990.jpg" width=80 height=80></DIV> 
+<DIV style="LINE-HEIGHT: 200%; MARGIN-TOP: 10px; COLOR: #000000"> 
+作者： <A href="http://wildwindwind.github.io/">黄海枫</A> <BR> 
+出处： <A href="http://wildwindwind.github.io/">http://wildwindwind.github.io/</A> 
+<BR>本文基于<a target="_blank" title="Creative Commons Attribution 2.5 China Mainland License" href="http://creativecommons.org/licenses/by/2.5/cn/"> 署名 2.5 中国大陆</a>许可协议发布，欢迎转载，演绎或用于商业目的，但是必须保留本文的署名 <a href="http://wildwindwind.github.io/">黄海枫</a>（包含链接）。 </DIV></DIV> 
+
+
+</article>
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>访客地图</h1>
+  <!--获得代码添加到这-->
+  <script type="text/javascript" src="http://jh.revolvermaps.com/2/1.js?i=78ic752sebg&amp;s=220&amp;m=0&amp;v=true&amp;r=false&amp;b=000000&amp;n=false&amp;c=ff0000" async="async"></script>
+</section><section> 
+  <h1>文章分类</h1> 
+  <ul id="categories"> 
+    <li class='category'><a href='/blog/categories/reading/'>Reading (1)</a></li>
+<li class='category'><a href='/blog/categories/wildfly/'>WildFly (1)</a></li>
+<li class='category'><a href='/blog/categories/tools/'>tools (1)</a></li>
+ 
+  </ul> 
+</section><section>
+  <h1>最新文章</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/03/12/btrace/">BTrace简介及使用</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/03/11/reader/">【码农周刊年终特刊】2013年我们读过的好书</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/03/10/accesslog/">开启JBoss7/WildFly的access_log功能</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/03/09/hello-blog/">Hello Blog</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/03/08/my-first-octopress-blog/">My First Octopress Blog</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/wildwindwind">@wildwindwind</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'wildwindwind',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+<section>
+  <h1>豆瓣</h1>
+  <div>
+  <script type="text/javascript" src="http://www.douban.com/service/badge/84644363/?selection=latest&amp;picsize=small&amp;show=collection&amp;n=8&amp;cat=drama%7Cmovie%7Cbook%7Cmusic&amp;columns=2"></script>
+  </div>
+</section><section>
+    <h1>新浪微博</h1>
+    <ul id="weibo">
+    <li>
+   <iframe width="100%" height="400" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=400&fansRow=2&ptype=1&speed=300&skin=5&isTitle=1&noborder=0&isWeibo=1&isFans=0&uid=3833170661&verifier=61ac6817&colors=ffffff,ffffff,666666,0082cb,ecfbfd&dpc=1"></iframe>
+      </li>
+    </ul>
+</section><section>
+<h1>技术网站推荐</h1>
+<ul>
+		<li>
+        <a href="http://www.csdn.net/">CSDN</a>
+        </li>
+		<li>
+        <a href=" http://www.51cto.com/"> 51CTO</a>
+        </li>
+		<li>
+        <a href="http://www.oschina.net/">开源中国</a>
+        </li>
+        <li>
+        <a href="http://www.infoq.com/cn">InfoQ中文网</a>
+        </li>  
+        <li>
+        <a href="http://www.ctocio.com">IT经理网</a>
+        </li>
+		<li>
+        <a href="http://www.infoq.com/cn/zones/baidu-salon/index.html">百度技术沙龙</a>
+        </li>
+		<li>
+        <a href="http://club.alibabatech.org/">阿里技术沙龙</a>
+        </li>
+        <li>
+        <a href="http://www.techtarget.com.cn/">TechTarget</a>
+        </li>
+		<li>
+        <a href="http://www.importnew.com/">ImportNew</a>
+        </li>
+		<li>
+        <a href="http://java.dzone.com/">Java Dzone</a>
+        </li>
+		<li>
+        <a href="http://jaxenter.com/">jaxenter</a>
+        </li>
+		<li>
+        <a href="http://www.gartner.com/technology/home.jsp">Gartner</a>
+        </li>
+</ul>
+</section><section>
+<h1>QR-Code<abbr title="The word 'QR Code' is a registered trademark of DENSO WAVE INCORPORATED. It applies only for the word 'QR Code', not for image.">&trade;</abbr></h1>
+<a href="http://wildwindwind.github.io/blog/2014/03/12/btrace/"><img src="http://chart.apis.google.com/chart?chs=150x150&cht=qr&chld=|0&chco=165B94&chl=http://wildwindwind.github.io/blog/2014/03/12/btrace/" alt="post-qrcode"></a></section>
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - wildWind -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

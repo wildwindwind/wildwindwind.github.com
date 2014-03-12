@@ -5,11 +5,12 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>~~wild~~wind~~</title>
+  <title>Information - ~~wild~~wind~~</title>
   <meta name="author" content="wildWind">
 
   
-  <meta name="description" content="背景 在生产环境中可能经常遇到各种问题，定位问题需要获取程序运行时的数据信息，如方法参数、返回值、全局变量、堆栈信息等。为了获取这些数据信息，我们可以通过改写代码，增加日志信息的打印，再发布到生产环境。通过这种方式，一方面将增大定位问题的成本和周期，对于紧急问题无法做到及时响应； &hellip;">
+  <meta name="description" content="Information Mar 9th, 2014 ![wildWind](http://avatar.csdn.net/3/1/F/1_huanghaifeng1990.jpg)
+QR-Code&trade; QQ:736943550 TEL:18551601703 Github:[https &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -18,7 +19,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://wildwindwind.github.io">
+  <link rel="canonical" href="http://wildwindwind.github.io/aboutme/index.markdown.bak">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="~~wild~~wind~~" type="application/atom+xml">
@@ -76,19 +77,12 @@
 </nav>
   <div id="main">
     <div id="content">
-      <div class="blog-index">
+      <div>
+<article role="article">
   
-  
-  
-    <article>
-      
   <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/12/btrace/">BTrace简介及使用</a></h1>
-    
-    
-      <p class="meta">
-        
+    <h1 class="entry-title">Information</h1>
+    <p class="meta">
 
 
 
@@ -100,200 +94,62 @@
   
 
 
-<time datetime="2014-03-12T20:43:36+08:00" pubdate data-updated="true">Mar 12<span>th</span>, 2014</time>
-        
-      </p>
-    
+<time datetime="2014-03-09T17:55:00+08:00" pubdate data-updated="true">Mar 9<span>th</span>, 2014</time></p>
   </header>
-
-
-  <div class="entry-content"><p>背景</p>
-
-<p>在生产环境中可能经常遇到各种问题，定位问题需要获取程序运行时的数据信息，如方法参数、返回值、全局变量、堆栈信息等。为了获取这些数据信息，我们可以通过改写代码，增加日志信息的打印，再发布到生产环境。通过这种方式，一方面将增大定位问题的成本和周期，对于紧急问题无法做到及时响应；另一方面重新部署后环境可能已被破坏，很难重新问题的场景。</p>
-
-<p>对于程序员来说最头大的问题之一就是线上出了故障了，但是我们无法debug来找出问题原因，同时在上线的时候日志级别限定了我们不可能把所有的细节都打印到log上，这个时候故障都等在哪里，能办的手段无非看源码，通过仔细看代码来找出问题，并编译重新上线解决，这种手段能解决一部分代码，但是对于一些隐藏较深的bug就无能为力了，例如OOM或是频繁的full gc，一般是一个很多的对象没有被释放或是一个对象被频繁的创建调用。在一个复杂的项目中，一个OOM问题可能是一个对象被频繁创建，这种方式指望通过看源码是很难解决的，但是BTrace可以迅速帮助我们定位到问题所在地。</p>
-
-</div>
   
+  ![wildWind](http://avatar.csdn.net/3/1/F/1_huanghaifeng1990.jpg)<section>
+<h1>QR-Code<abbr title="The word 'QR Code' is a registered trademark of DENSO WAVE INCORPORATED. It applies only for the word 'QR Code', not for image.">&trade;</abbr></h1>
+<a href="http://wildwindwind.github.io/aboutme/index.markdown.bak"><img src="http://chart.apis.google.com/chart?chs=150x150&cht=qr&chld=|0&chco=165B94&chl=http://wildwindwind.github.io/aboutme/index.markdown.bak" alt="post-qrcode"></a></section>
+</br>        
+QQ:736943550					         
+TEL:18551601703
+</br>
+Github:[https://github.com/wildwindwind](https://github.com/wildwindwind "Github")
+</br>
+CSDN:[http://blog.csdn.net/wildandfly](http://blog.csdn.net/wildandfly "CSDN")
+</br>
+
+
+
   
     <footer>
-      <a rel="full-article" href="/blog/2014/03/12/btrace/">Read on &rarr;</a>
+      <p class="meta">
+        
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-03-09T17:55:00+08:00" pubdate data-updated="true">Mar 9<span>th</span>, 2014</time>
+        
+      </p>
+      
+        <!-- JiaThis Button BEGIN -->
+<div class="jiathis_style_24x24">
+	<a class="jiathis_button_qzone"></a>
+	<a class="jiathis_button_tsina"></a>
+	<a class="jiathis_button_tqq"></a>
+	<a class="jiathis_button_weixin"></a>
+	<a class="jiathis_button_renren"></a>
+	<a href="http://www.jiathis.com/share" class="jiathis jiathis_txt jtico jtico_jiathis" target="_blank"></a>
+	<a class="jiathis_counter_style"></a>
+</div>
+<script type="text/javascript" src="http://v3.jiathis.com/code_mini/jia.js?uid=1394191592136352" charset="utf-8"></script>
+<!-- JiaThis Button END -->
+      
     </footer>
   
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/11/reader/">【码农周刊年终特刊】2013年我们读过的好书</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-03-11T22:42:55+08:00" pubdate data-updated="true">Mar 11<span>th</span>, 2014</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><ul>
-<li>黑客与画家:来自计算机时代的高见</li>
-<li>数学之美</li>
-<li>多处理器编程的艺术(修订版)</li>
-<li>高性能MySQL(第3版)</li>
-<li>Go Web编程</li>
-<li>MacTalk·人生元编程</li>
-<li>淘宝技术这十年</li>
-<li>深入浅出Node.js</li>
-<li>用AngularJS开发下一代Web应用（来自Google，最具潜力的JavaScript框架的唯一著作）</li>
-<li>恰如其分的软件架构:风险驱动的设计方法</li>
-</ul>
+</article>
 
 </div>
-  
-  
 
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/10/accesslog/">开启JBoss7/WildFly的access_log功能</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-03-10T00:14:14+08:00" pubdate data-updated="true">Mar 10<span>th</span>, 2014</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>前言</p>
-
-<p>对于一个网站来说，访问日志，即access_log，对网站来说是一项很重要的功能。利用它，我们可以统计出很多有用的信息，从而给网站的运维带来方便，所以基本上每个网站都会开启这件功能。</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2014/03/10/accesslog/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/09/hello-blog/">Hello Blog</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-03-09T01:32:57+08:00" pubdate data-updated="true">Mar 9<span>th</span>, 2014</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>来龙去脉了解了一下,好玩!
-睡觉了,晚安,世界!</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/08/my-first-octopress-blog/">My First Octopress Blog</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-03-08T01:13:39+08:00" pubdate data-updated="true">Mar 8<span>th</span>, 2014</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content">
-</div>
-  
-  
-
-
-    </article>
-  
-  <div class="pagination">
-    
-    <a href="/blog/archives">Blog Archives</a>
-    
-  </div>
-</div>
 <aside class="sidebar">
   
     <section>
@@ -338,7 +194,7 @@
 <section>
   <h1>GitHub Repos</h1>
   <ul id="gh_repos">
-    <li class="loading">Status updating&#8230;</li>
+    <li class="loading">Status updating...</li>
   </ul>
   
   <a href="https://github.com/wildwindwind">@wildwindwind</a> on GitHub
@@ -421,10 +277,11 @@
 </ul>
 </section><section>
 <h1>QR-Code<abbr title="The word 'QR Code' is a registered trademark of DENSO WAVE INCORPORATED. It applies only for the word 'QR Code', not for image.">&trade;</abbr></h1>
-<a href="http://wildwindwind.github.io/index.html"><img src="http://chart.apis.google.com/chart?chs=150x150&cht=qr&chld=|0&chco=165B94&chl=http://wildwindwind.github.io/index.html" alt="post-qrcode"></a></section>
+<a href="http://wildwindwind.github.io/aboutme/index.markdown.bak"><img src="http://chart.apis.google.com/chart?chs=150x150&cht=qr&chld=|0&chco=165B94&chl=http://wildwindwind.github.io/aboutme/index.markdown.bak" alt="post-qrcode"></a></section>
 
   
 </aside>
+
 
     </div>
   </div>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Reading | ~~wild~~wind~~]]></title>
+  <link href="http://wildwindwind.github.io/blog/categories/reading/atom.xml" rel="self"/>
+  <link href="http://wildwindwind.github.io/"/>
+  <updated>2014-03-12T20:48:31+08:00</updated>
+  <id>http://wildwindwind.github.io/</id>
+  <author>
+    <name><![CDATA[wildWind]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[【码农周刊年终特刊】2013年我们读过的好书]]></title>
+    <link href="http://wildwindwind.github.io/blog/2014/03/11/reader/"/>
+    <updated>2014-03-11T22:42:55+08:00</updated>
+    <id>http://wildwindwind.github.io/blog/2014/03/11/reader</id>
+    <content type="html"><![CDATA[<ul>
+<li>黑客与画家:来自计算机时代的高见</li>
+<li>数学之美</li>
+<li>多处理器编程的艺术(修订版)</li>
+<li>高性能MySQL(第3版)</li>
+<li>Go Web编程</li>
+<li>MacTalk·人生元编程</li>
+<li>淘宝技术这十年</li>
+<li>深入浅出Node.js</li>
+<li>用AngularJS开发下一代Web应用（来自Google，最具潜力的JavaScript框架的唯一著作）</li>
+<li>恰如其分的软件架构:风险驱动的设计方法</li>
+</ul>
+
+]]></content>
+  </entry>
+  
+</feed>

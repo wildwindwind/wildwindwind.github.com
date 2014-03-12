@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: WildFly | ~~wild~~wind~~]]></title>
+  <link href="http://wildwindwind.github.io/blog/categories/wildfly/atom.xml" rel="self"/>
+  <link href="http://wildwindwind.github.io/"/>
+  <updated>2014-03-12T20:48:31+08:00</updated>
+  <id>http://wildwindwind.github.io/</id>
+  <author>
+    <name><![CDATA[wildWind]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[开启JBoss7/WildFly的access_log功能]]></title>
+    <link href="http://wildwindwind.github.io/blog/2014/03/10/accesslog/"/>
+    <updated>2014-03-10T00:14:14+08:00</updated>
+    <id>http://wildwindwind.github.io/blog/2014/03/10/accesslog</id>
+    <content type="html"><![CDATA[<p>前言</p>
+
+<p>对于一个网站来说，访问日志，即access_log，对网站来说是一项很重要的功能。利用它，我们可以统计出很多有用的信息，从而给网站的运维带来方便，所以基本上每个网站都会开启这件功能。</p>
+
+<!--more-->
+
+
+<p>JBoss As 7配置</p>
+
+<p>在默认的情况下，JBoss7.1是没有开启access_log的，如果要开启这项功能，就需要修改$JBOSS_HOME\standalone\configuration\standalone.xml（domain.xml）这个文件，相关的修改内容如下所示：</p>
+
+<pre><code>&lt;subsystem xmlns="urn:jboss:domain:web:1.0"default-virtual-server="default-host"&gt;
+&lt;connector name="http"scheme="http" protocol="HTTP/1.1" socket-binding="http"/&gt;
+&lt;virtual-server name="default-host" enable-welcome-root="true"&gt;
+&lt;alias name="localhost"/&gt;
+&lt;alias name="example.com"/&gt;
+&lt;access-log/&gt;
+&lt;/virtual-server&gt;
+&lt;/subsystem&gt;
+</code></pre>
+
+<p>当完成上面的配置并重启服务器后，你就可以访问一下你的网站，然后你就会在$JBOSS_HOME\standalone\log\default-host目录下看到一个名为access_log.2012-02-24的文件，它就是你所需要的访问日志了。</p>
+
+<p>WildFly 8 配置</p>
+
+<p>WildFly开启access_log的方法和JBoss 7 类似，也是找到相对应的web容器添加上配置就可以了，只不过二者使用的容器不相同，而且WildFly中必须指定log的存放目录。</p>
+
+<pre><code> &lt;subsystem xmlns="urn:jboss:domain:undertow:1.0"&gt;
+&lt;buffer-caches&gt;
+&lt;buffer-cache name="default" buffer-size="1024" buffers-per-region="1024" max-regions="10"/&gt;
+&lt;/buffer-caches&gt;
+&lt;server name="default-server"&gt;
+&lt;http-listener name="default" socket-binding="http"/&gt;
+&lt;host name="default-host" alias="localhost"&gt;
+&lt;location name="/" handler="welcome-content"/&gt;
+&lt;filter-ref name="server-header"/&gt;
+&lt;filter-ref name="x-powered-by-header"/&gt;
+&lt;access-log pattern="common" directory="${jboss.home.dir}/standalone/log" prefix="access" /&gt;
+&lt;/host&gt;
+&lt;/server&gt;
+&lt;servlet-container name="default" default-buffer-cache="default" stack-trace-on-error="local-only"&gt;
+&lt;jsp-config/&gt;
+&lt;/servlet-container&gt;
+&lt;handlers&gt;
+&lt;file name="welcome-content" path="${jboss.home.dir}/welcome-content" directory-listing="true"/&gt;
+&lt;/handlers&gt;
+&lt;filters&gt;
+&lt;response-header name="server-header" header-name="Server" header-value="Wildfly 8"/&gt;
+&lt;response-header name="x-powered-by-header" header-name="X-Powered-By" header-value="Undertow 1"/&gt;
+&lt;/filters&gt;
+&lt;/subsystem&gt;
+</code></pre>
+
+<p>如上，添加红色标记一行，即可开启WildFly 8的access_log功能，重启服务器，访问ip:8080即可在JBOSS_HOME/standalone/log目录下生成access.log。</p>
+
+<p>其中</p>
+
+<p>prefix指定log文件的前缀名即文件名</p>
+
+<p>pattern指定日志的格式</p>
+
+<p>pattern可以设置成两种方式，第一种是pattern=&ldquo;common"，第二种是pattern="combined&rdquo;</p>
+
+<p>以下是笔者测试的两种格式的日志输出，访问localhost:8080</p>
+
+<p>common格式的日志输出如下：
+<img src="http://img.blog.csdn.net/20140218160625875?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvd2lsZGFuZGZseQ==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt="" />
+combined格式的日志输出如下：</p>
+
+<p>可以看出，第二种格式的日志输出相对具体，而实际开发过程中开启哪种格式的access_log要根据需求来确定就可以了。</p>
+
+<p>结束语</p>
+
+<p>开启access_log的配置到此结束，若有问题，请参考以下资料，谢谢！</p>
+
+<p>参考资料</p>
+
+<p><a href="https://issues.jboss.org/browse/WFLY-1721">https://issues.jboss.org/browse/WFLY-1721</a>
+<a href="http://hi.baidu.com/saiv000/item/9ed9779aa1b1a2dc1f4271ea">http://hi.baidu.com/saiv000/item/9ed9779aa1b1a2dc1f4271ea</a>
+<a href="http://hooray520.iteye.com/blog/1335156">http://hooray520.iteye.com/blog/1335156</a></p>
+]]></content>
+  </entry>
+  
+</feed>
